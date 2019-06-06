@@ -32,7 +32,7 @@
 #include "catch.hpp"
 #include "core_geometric.hpp"
 #include "core_matrix.hpp"
-#include "core_sequence.hpp"
+#include "core_vector.hpp"
 
 
 

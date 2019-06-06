@@ -48,10 +48,10 @@ struct mara::iso2d
     using unit_flow               = dimensional_value_t< 0, 1,-1, double>;
     using unit_flux               = dimensional_value_t<-1, 1,-1, double>;
 
-    using conserved_per_area_t    = covariant_sequence_t<unit_conserved_per_area, 3>;
-    using conserved_t             = covariant_sequence_t<unit_conserved, 3>;
-    using flow_t                  = covariant_sequence_t<unit_flow, 3>;
-    using flux_t                  = covariant_sequence_t<unit_flux, 3>;
+    using conserved_per_area_t    = covariant_vector_t<unit_conserved_per_area, 3>;
+    using conserved_t             = covariant_vector_t<unit_conserved, 3>;
+    using flow_t                  = covariant_vector_t<unit_flow, 3>;
+    using flux_t                  = covariant_vector_t<unit_flux, 3>;
 
     struct primitive_t;
     struct wavespeeds_t
@@ -77,7 +77,7 @@ struct mara::iso2d
 
 
 //=============================================================================
-struct mara::iso2d::primitive_t : public mara::arithmetic_sequence_t<double, 3, primitive_t>
+struct mara::iso2d::primitive_t : public mara::arithmetic_vector_t<double, 3, primitive_t>
 {
 
 

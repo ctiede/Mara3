@@ -106,9 +106,9 @@ namespace binary
 
 
     //=========================================================================
-    using location_2d_t     = mara::covariant_sequence_t<mara::dimensional_value_t<1, 0,  0, double>, 2>;
-    using velocity_2d_t     = mara::covariant_sequence_t<mara::dimensional_value_t<1, 0, -1, double>, 2>;
-    using acceleration_2d_t = mara::covariant_sequence_t<mara::dimensional_value_t<1, 0, -2, double>, 2>;
+    using location_2d_t     = mara::covariant_vector_t<mara::dimensional_value_t<1, 0,  0, double>, 2>;
+    using velocity_2d_t     = mara::covariant_vector_t<mara::dimensional_value_t<1, 0, -1, double>, 2>;
+    using acceleration_2d_t = mara::covariant_vector_t<mara::dimensional_value_t<1, 0, -2, double>, 2>;
 
     struct point_mass_t
     {

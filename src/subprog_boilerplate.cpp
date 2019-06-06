@@ -266,7 +266,6 @@ public:
     int main(int argc, const char* argv[]) override
     {
         mpi::Session mpi_session;
-
         mpi::printf_master("initialized on %d mpi processes\n", mpi::comm_world().size());
 
         auto run_config = create_run_config(argc, argv);

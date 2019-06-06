@@ -29,7 +29,7 @@
 #pragma once
 #include <string>
 #include <cmath>
-#include "core_sequence.hpp"
+#include "core_vector.hpp"
 #include "core_dimensional.hpp"
 
 
@@ -39,8 +39,8 @@
 namespace mara
 {
     class unit_vector_t;
-    using spatial_coordinate_t = covariant_sequence_t<unit_length<double>, 3>;
-    using area_element_t       = covariant_sequence_t<unit_area  <double>, 3>;
+    using spatial_coordinate_t = covariant_vector_t<unit_length<double>, 3>;
+    using area_element_t       = covariant_vector_t<unit_area  <double>, 3>;
 
     inline auto make_spatial_coordinate(double x1, double x2, double x3);
     inline auto make_area_element(double da1, double da2, double da3);

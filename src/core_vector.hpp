@@ -37,12 +37,12 @@
 //=============================================================================
 namespace mara
 {
-    template<typename ValueType, std::size_t Rank, typename DerivedType> class fixed_length_sequence_t;
-    template<typename ValueType, std::size_t Rank, typename DerivedType> class arithmetic_sequence_t;
-    template<typename ValueType, std::size_t Rank> class covariant_sequence_t;
+    template<typename ValueType, std::size_t Rank, typename DerivedType> class fixed_length_vector_t;
+    template<typename ValueType, std::size_t Rank, typename DerivedType> class arithmetic_vector_t;
+    template<typename ValueType, std::size_t Rank> class covariant_vector_t;
 
     template<typename ValueType, std::size_t Rank, typename DerivedType>
-    auto to_string(const fixed_length_sequence_t<ValueType, Rank, DerivedType>& sequence);
+    auto to_string(const fixed_length_vector_t<ValueType, Rank, DerivedType>& sequence);
 
     template<typename Function>
     auto lift(Function f);
@@ -94,7 +94,7 @@ namespace mara::sequence::details
  * @tparam     DerivedType  The CRTP class (google 'curiously recurring template pattern')
  */
 template<typename ValueType, std::size_t Rank, typename DerivedType>
-class mara::fixed_length_sequence_t
+class mara::fixed_length_vector_t
 {
 public:
     using value_type = ValueType;
@@ -128,7 +128,7 @@ public:
         return result;
     }
 
-    fixed_length_sequence_t()
+    fixed_length_vector_t()
     {
         for (std::size_t n = 0; n < Rank; ++n)
         {
@@ -136,7 +136,7 @@ public:
         }
     }
 
-    fixed_length_sequence_t(std::initializer_list<ValueType> args)
+    fixed_length_vector_t(std::initializer_list<ValueType> args)
     {
         if (args.size() != Rank)
         {
@@ -200,19 +200,19 @@ private:
  *             and you can multiply the whole sequence by scalars of the same
  *             value type. Arithmetic operations all return another instance of
  *             the same class type. For sequences that are covariant in the
- *             value type, see the covariant_sequence_t. This class is not
+ *             value type, see the covariant_vector_t. This class is not
  *             used directly; you should inherit it with the CRTP pattern. This
  *             means that type identity is defined by the name of the derived
  *             class (different derived classes with the same rank and value
  *             type are not considered equal by the compiler).
  */
 template<typename ValueType, std::size_t Rank, typename DerivedType>
-class mara::arithmetic_sequence_t : public fixed_length_sequence_t<ValueType, Rank, DerivedType>
+class mara::arithmetic_vector_t : public fixed_length_vector_t<ValueType, Rank, DerivedType>
 {
 public:
 
     //=========================================================================
-    using fixed_length_sequence_t<ValueType, Rank, DerivedType>::fixed_length_sequence_t;
+    using fixed_length_vector_t<ValueType, Rank, DerivedType>::fixed_length_vector_t;
 
     //=========================================================================
     DerivedType operator*(const ValueType& other) const { return binary_op(other, std::multiplies<>()); }
@@ -282,18 +282,18 @@ private:
  *             type.
  */
 template<typename ValueType, std::size_t Rank>
-class mara::covariant_sequence_t final : public fixed_length_sequence_t<ValueType, Rank, covariant_sequence_t<ValueType, Rank>>
+class mara::covariant_vector_t final : public fixed_length_vector_t<ValueType, Rank, covariant_vector_t<ValueType, Rank>>
 {
 public:
 
     //=========================================================================
-    using fixed_length_sequence_t<ValueType, Rank, covariant_sequence_t<ValueType, Rank>>::fixed_length_sequence_t;
+    using fixed_length_vector_t<ValueType, Rank, covariant_vector_t<ValueType, Rank>>::fixed_length_vector_t;
 
     //=========================================================================
     template <typename T> auto operator*(const T& a) const { return binary_op(a, std::multiplies<>()); }
     template <typename T> auto operator/(const T& a) const { return binary_op(a, std::divides<>()); }
-    auto operator+(const covariant_sequence_t& v) const { return binary_op(v, std::plus<>()); }
-    auto operator-(const covariant_sequence_t& v) const { return binary_op(v, std::minus<>()); }
+    auto operator+(const covariant_vector_t& v) const { return binary_op(v, std::plus<>()); }
+    auto operator-(const covariant_vector_t& v) const { return binary_op(v, std::minus<>()); }
     auto operator-() const { return unary_op(std::negate<>()); }
 
 
@@ -323,7 +323,7 @@ public:
      */
     auto drop_first() const
     {
-        auto result = covariant_sequence_t<ValueType, Rank - 1>();
+        auto result = covariant_vector_t<ValueType, Rank - 1>();
 
         for (std::size_t n = 0; n < Rank - 1; ++n)
         {
@@ -341,7 +341,7 @@ public:
      */
     auto drop_final() const
     {
-        auto result = covariant_sequence_t<ValueType, Rank - 1>();
+        auto result = covariant_vector_t<ValueType, Rank - 1>();
 
         for (std::size_t n = 0; n < Rank - 1; ++n)
         {
@@ -354,10 +354,10 @@ public:
 private:
     //=========================================================================
     template<typename Function>
-    auto binary_op(const covariant_sequence_t& v, Function&& fn) const
+    auto binary_op(const covariant_vector_t& v, Function&& fn) const
     {
         const auto& _ = *this;
-        auto result = covariant_sequence_t();
+        auto result = covariant_vector_t();
 
         for (std::size_t n = 0; n < Rank; ++n)
         {
@@ -370,7 +370,7 @@ private:
     auto binary_op(const T& a, Function&& fn) const
     {
         const auto& _ = *this;
-        auto result = covariant_sequence_t<std::invoke_result_t<Function, ValueType, T>, Rank>();
+        auto result = covariant_vector_t<std::invoke_result_t<Function, ValueType, T>, Rank>();
 
         for (std::size_t n = 0; n < Rank; ++n)
         {
@@ -383,7 +383,7 @@ private:
     auto unary_op(Function&& fn) const
     {
         const auto& _ = *this;
-        auto result = covariant_sequence_t<std::invoke_result_t<Function, ValueType>, Rank>();
+        auto result = covariant_vector_t<std::invoke_result_t<Function, ValueType>, Rank>();
 
         for (std::size_t n = 0; n < Rank; ++n)
         {
@@ -398,7 +398,7 @@ private:
 
 //=============================================================================
 template<typename ValueType, std::size_t Rank, typename DerivedType>
-auto mara::to_string(const mara::fixed_length_sequence_t<ValueType, Rank, DerivedType>& sequence)
+auto mara::to_string(const mara::fixed_length_vector_t<ValueType, Rank, DerivedType>& sequence)
 {
     using std::to_string;
 
