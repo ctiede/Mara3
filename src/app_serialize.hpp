@@ -28,12 +28,12 @@
 
 #pragma once
 #include <variant>
-#include "ndh5.hpp"
-#include "ndarray.hpp"
 #include "app_config.hpp"
 #include "app_schedule.hpp"
+#include "core_ndarray.hpp"
 #include "core_geometric.hpp"
 #include "core_rational.hpp"
+#include "core_hdf5.hpp"
 
 
 
@@ -76,6 +76,18 @@ namespace mara::serialize::detail
 
     template<typename Tuple1, typename Tuple2>
     auto tuple_pair(Tuple1&& t1, Tuple2&& t2);
+
+    template<std::size_t Rank, typename Iterable>
+    auto shape_from(const Iterable& container)
+    {
+        auto result = nd::shape_t<Rank>();
+        auto n = std::size_t();
+
+        for (auto item : container)
+            result[n++] = item;
+
+        return result;
+    }
 };
 
 
@@ -146,7 +158,7 @@ auto mara::make_hdf5_hyperslab(const nd::access_pattern_t<Rank>& sel)
     result.start = std::vector<hsize_t>(sel.start.begin(), sel.start.end());
     result.skips = std::vector<hsize_t>(sel.jumps.begin(), sel.jumps.end());
     result.count = std::vector<hsize_t>(sel_shape.begin(), sel_shape.end());
-    result.block = std::vector<hsize_t>(sel.rank, 1);
+    result.block = std::vector<hsize_t>(sel.rank(), 1);
     return result;
 }
 
@@ -235,8 +247,8 @@ struct h5::hdf5_type_info<nd::shared_array<ValueType, Rank>>
     using native_type = nd::shared_array<ValueType, Rank>;
     static auto make_datatype_for(const native_type&) { return h5::make_datatype_for(ValueType()); }
     static auto make_dataspace_for(const native_type& value) { return Dataspace::simple(value.shape()); }
-    static auto prepare(const Datatype&, const Dataspace& space) { return nd::make_unique_array<ValueType>(nd::shape_t<Rank>::from_range(space.extent())); }
-    static auto finalize(nd::unique_array<ValueType, Rank>&& value) { return std::move(value).shared(); }
+    static auto prepare(const Datatype&, const Dataspace& space) { return nd::make_unique_array<ValueType>(mara::serialize::detail::shape_from<Rank>(space.extent())); }
+    static auto finalize(nd::unique_array<ValueType, Rank>&& value) { return std::move(value) | nd::to_shared(); }
     static auto get_address(const native_type& value) { return value.data(); }
 };
 
@@ -250,7 +262,7 @@ struct h5::hdf5_type_info<nd::unique_array<ValueType, Rank>>
     using native_type = nd::unique_array<ValueType, Rank>;
     static auto make_datatype_for(const native_type&) { return h5::make_datatype_for(ValueType()); }
     static auto make_dataspace_for(const native_type& value) { return Dataspace::simple(value.shape()); }
-    static auto prepare(const Datatype&, const Dataspace& space) { return nd::make_unique_array<ValueType>(nd::shape_t<Rank>::from_range(space.extent())); }
+    static auto prepare(const Datatype&, const Dataspace& space) { return nd::make_unique_array<ValueType>(mara::serialize::detail::shape_from<Rank>(space.extent())); }
     static auto finalize(native_type&& value) { return std::move(value); }
     static auto get_address(native_type& value) { return value.data(); }
 };

@@ -29,9 +29,9 @@
 
 
 #include <iostream>
-#include "ndh5.hpp"
-#include "ndarray.hpp"
-#include "ndarray_ops.hpp"
+#include "core_hdf5.hpp"
+#include "core_ndarray.hpp"
+#include "core_ndarray_ops.hpp"
 #include "core_geometric.hpp"
 #include "core_rational.hpp"
 #include "app_config.hpp"
@@ -331,13 +331,13 @@ auto CloudProblem::make_diagnostic_fields(const solution_state_t& state, const m
 
     result.radial_vertices    = state.radial_vertices * reference.length() | nd::to_shared();
     result.polar_vertices     = state.polar_vertices;
-    result.solid_angle_at_theta  = std::move(solid_angle_at_theta).shared();
-    result.total_energy_at_theta = std::move(total_energy_at_theta).shared();
-    result.shock_midpoint_radius = std::move(shock_midpoint_radius).shared();
-    result.shock_upstream_radius = std::move(shock_upstream_radius).shared();
-    result.shock_pressure_radius = std::move(shock_pressure_radius).shared();
-    result.postshock_flow_power  = std::move(postshock_flow_power).shared();
-    result.postshock_flow_gamma  = std::move(postshock_flow_gamma).shared();
+    result.solid_angle_at_theta  = std::move(solid_angle_at_theta)  | nd::to_shared();
+    result.total_energy_at_theta = std::move(total_energy_at_theta) | nd::to_shared();
+    result.shock_midpoint_radius = std::move(shock_midpoint_radius) | nd::to_shared();
+    result.shock_upstream_radius = std::move(shock_upstream_radius) | nd::to_shared();
+    result.shock_pressure_radius = std::move(shock_pressure_radius) | nd::to_shared();
+    result.postshock_flow_power  = std::move(postshock_flow_power)  | nd::to_shared();
+    result.postshock_flow_gamma  = std::move(postshock_flow_gamma)  | nd::to_shared();
 
     result.time               = state.time * reference.time();
     result.specific_entropy   = primitive | nd::map(std::bind(&mara::srhd::primitive_t::specific_entropy, _1, gamma_law_index)) | nd::to_shared();
@@ -522,7 +522,7 @@ auto CloudProblem::next_solution(const app_state_t& app_state)
 
     auto u0 = state.conserved;
     auto p0 = u0 / dv | nd::map(cons_to_prim) | evaluate;
-    auto s0 = nd::zip_arrays(p0, rc) | nd::apply(source_terms) | nd::multiply(dv);
+    auto s0 = nd::zip(p0, rc) | nd::apply(source_terms) | nd::multiply(dv);
 
     if (app_state.run_config.get_int("reconstruct_method") == 1)
     {
@@ -552,7 +552,7 @@ auto CloudProblem::next_solution(const app_state_t& app_state)
                 | nd::apply(mara::lift(estimate_gradient_plm))
                 | nd::extend_zeros(axis);
 
-                return nd::zip_arrays(
+                return nd::zip(
                     (P | L) + (G | L) * 0.5,
                     (P | R) - (G | R) * 0.5);
             };

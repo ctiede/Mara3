@@ -30,10 +30,10 @@
 
 #include <cmath>
 #include <iostream>
-#include "ndmpi.hpp"
-#include "ndh5.hpp"
-#include "ndarray.hpp"
-#include "ndarray_ops.hpp"
+#include "core_mpi.hpp"
+#include "core_hdf5.hpp"
+#include "core_ndarray.hpp"
+#include "core_ndarray_ops.hpp"
 #include "app_config.hpp"
 #include "app_serialize.hpp"
 #include "app_schedule.hpp"
@@ -278,7 +278,7 @@ auto binary::intercell_flux_on_axis(std::size_t axis)
         auto R = array | nd::select_axis(axis).from(1).to(0).from_the_end();
         auto nh = mara::unit_vector_t::on_axis(axis);
         auto riemann = std::bind(mara::iso2d::riemann_hlle, _1, _2, nh, sound_speed_squared);
-        return nd::zip_arrays(L, R) | nd::apply(riemann);
+        return nd::zip(L, R) | nd::apply(riemann);
     };
 }
 
@@ -319,7 +319,7 @@ auto binary::make_diagnostic_fields(const solution_state_t& state)
 {
 
     auto dA = cell_surface_area(state.x_vertices, state.y_vertices);
-    auto [xc, yc] = nd::unzip_array(cell_center_cartprod(state.x_vertices, state.y_vertices));
+    auto [xc, yc] = nd::unzip(cell_center_cartprod(state.x_vertices, state.y_vertices));
     auto rc = xc * xc + yc * yc | nd::map([] (auto r2) { return mara::make_length(std::sqrt(r2.value)); });
     auto rhat_x =  xc / rc;
     auto rhat_y =  yc / rc;

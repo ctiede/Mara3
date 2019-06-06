@@ -29,7 +29,7 @@
 #pragma once
 #include <vector>
 #include <thread>
-#include "ndarray.hpp"
+#include "core_ndarray.hpp"
 
 
 
@@ -45,6 +45,22 @@ namespace mara
 
     template<std::size_t Rank>
     inline auto create_access_pattern_array(nd::shape_t<Rank> global_shape, nd::shape_t<Rank> blocks_shape);
+
+    template<std::size_t NumPartitions, std::size_t Rank>
+    auto partition_shape(nd::shape_t<Rank> shape)
+    {
+        constexpr std::size_t distributed_axis = 0;
+        auto result = sq::sequence_t<nd::access_pattern_t<Rank>, NumPartitions>();
+
+        for (std::size_t n = 0; n < NumPartitions; ++n)
+        {
+            auto p = nd::make_access_pattern(shape);
+            p.start[distributed_axis] = (n + 0) * shape[distributed_axis] / NumPartitions;
+            p.final[distributed_axis] = (n + 1) * shape[distributed_axis] / NumPartitions;
+            result[n] = p;
+        }
+        return result;
+    }
 }
 
 
@@ -78,7 +94,7 @@ auto mara::evaluate_on()
     return [] (auto array)
     {
         using value_type = typename decltype(array)::value_type;
-        auto provider = nd::make_unique_provider<value_type>(array.shape());
+        auto provider = nd::unique_provider_t<value_type, array.rank()>(array.shape());
         auto evaluate_partial = [&] (auto accessor)
         {
             return [accessor, array, &provider]
@@ -89,11 +105,11 @@ auto mara::evaluate_on()
                 }
             };
         };
-        auto threads = nd::basic_sequence_t<std::thread, NumThreads>();
-        auto regions = nd::partition_shape<NumThreads>(array.shape());
+        auto threads = sq::sequence_t<std::thread, NumThreads>();
+        auto regions = partition_shape<NumThreads>(array.shape());
 
-        for (auto [n, accessor] : nd::enumerate(regions))
-            threads[n] = std::thread(evaluate_partial(accessor));
+        for (std::size_t i = 0; i < NumThreads; ++i)
+            threads[i] = std::thread(evaluate_partial(regions[i]));
 
         for (auto& thread : threads)
             thread.join();
@@ -119,14 +135,15 @@ auto mara::evaluate_on()
 template<std::size_t Rank>
 auto mara::propose_block_decomposition(std::size_t number_of_subdomains)
 {
-    auto mult = nd::transform([] (auto g) { return nd::accumulate(g, 1, std::multiplies<>()); });
+    // auto mult = nd::transform([] (auto g) { return nd::accumulate(g, 1, std::multiplies<>()); });
     auto result = nd::shape_t<Rank>();
-    auto n = 0;
+    // auto n = 0;
 
-    for (auto dim : nd::divvy(Rank)(parallel::detail::prime_factors(number_of_subdomains)) | mult)
-    {
-        result[n++] = dim;
-    }
+    throw;
+    // for (auto dim : nd::divvy(Rank)(parallel::detail::prime_factors(number_of_subdomains)) | mult)
+    // {
+    //     result[n++] = dim;
+    // }
     return result;
 }
 
@@ -148,8 +165,8 @@ auto mara::propose_block_decomposition(std::size_t number_of_subdomains)
 template<std::size_t Rank>
 auto mara::create_access_pattern_array(nd::shape_t<Rank> global_shape, nd::shape_t<Rank> blocks_shape)
 {
-    nd::basic_sequence_t<std::vector<std::size_t>, Rank> block_start_indexes;
-    nd::basic_sequence_t<std::vector<std::size_t>, Rank> block_sizes;
+    sq::sequence_t<std::vector<std::size_t>, Rank> block_start_indexes;
+    sq::sequence_t<std::vector<std::size_t>, Rank> block_sizes;
 
     for (auto axis : nd::range(Rank))
     {

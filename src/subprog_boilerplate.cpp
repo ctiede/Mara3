@@ -30,10 +30,10 @@
 
 #include <cmath>
 #include <iostream>
-#include "ndmpi.hpp"
-#include "ndh5.hpp"
-#include "ndarray.hpp"
-#include "ndarray_ops.hpp"
+#include "core_mpi.hpp"
+#include "core_hdf5.hpp"
+#include "core_ndarray.hpp"
+#include "core_ndarray_ops.hpp"
 #include "app_config.hpp"
 #include "app_serialize.hpp"
 #include "app_schedule.hpp"
@@ -91,8 +91,8 @@ static auto read_solution(h5::Group&& group)
     auto state = solution_state_t();
     state.time = group.read<double>("time");
     state.iteration = group.read<int>("iteration");
-    state.vertices = group.read<nd::unique_array<double, 1>>("vertices").shared();
-    state.solution = group.read<nd::unique_array<double, 1>>("solution").shared();
+    state.vertices = group.read<nd::unique_array<double, 1>>("vertices") | nd::to_shared();
+    state.solution = group.read<nd::unique_array<double, 1>>("solution") | nd::to_shared();
     return state;
 }
 
@@ -104,8 +104,8 @@ static auto new_solution(const mara::config_t& cfg)
     auto xc = xv | nd::midpoint_on_axis(0);
     auto state = solution_state_t();
 
-    state.vertices = xv.shared();
-    state.solution = (xc | nd::map(initial_u)).shared();
+    state.vertices = xv | nd::to_shared();
+    state.solution = (xc | nd::map(initial_u)) | nd::to_shared();
 
     return state;
 }
@@ -132,7 +132,7 @@ static auto next_solution(const solution_state_t& state)
     auto u1 = u0 - lc * dt;
     auto t1 = state.time + dt;
     auto i1 = state.iteration + 1;
-    return solution_state_t { t1, i1, xv, u1.shared() };
+    return solution_state_t { t1, i1, xv, u1 | nd::to_shared() };
 }
 
 

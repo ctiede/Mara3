@@ -29,9 +29,9 @@
 
 
 #include <iostream>
-#include "ndarray.hpp"
-#include "ndarray_ops.hpp"
-#include "ndh5.hpp"
+#include "core_ndarray.hpp"
+#include "core_ndarray_ops.hpp"
+#include "core_hdf5.hpp"
 #include "app_config.hpp"
 #include "app_serialize.hpp"
 #include "app_subprogram.hpp"
@@ -67,7 +67,7 @@ public:
         // Demonstrates use of the block decomposition algorithms
         // =====================================================================
         auto blocks_shape = mara::propose_block_decomposition<3>(opts.get<int>("procs"));
-        auto domain_shape = nd::make_uniform_shape<3>(opts.get<int>("N"));
+        auto domain_shape = nd::uniform_shape<3>(opts.get<int>("N"));
         auto array_of_access_patterns = mara::create_access_pattern_array(domain_shape, blocks_shape);
 
         for (auto index : array_of_access_patterns.indexes())
@@ -80,7 +80,7 @@ public:
         // access patterns.
         // =====================================================================
         auto vertex_arrays = array_of_access_patterns
-        | nd::map([] (auto reg) { return reg.with_final(reg.final.transform([] (auto x) { return x + 1; })); })
+        | nd::map([] (auto reg) { return reg.with_final(nd::index_t<3>(reg.final.seq | sq::map([] (auto x) { return x + 1; }))); })
         | nd::map([] (auto reg)
         {
             return nd::index_array(reg.shape())

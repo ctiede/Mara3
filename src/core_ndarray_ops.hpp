@@ -28,7 +28,7 @@
 
 #pragma once
 #include <cmath>
-#include "ndarray.hpp"
+#include "core_ndarray.hpp"
 
 
 
@@ -71,7 +71,7 @@ auto nd::select_first(std::size_t count, std::size_t axis)
     return [count, axis] (auto array)
     {
         auto shape = array.shape();
-        auto start = nd::make_uniform_index<shape.size()>(0);
+        auto start = nd::uniform_index<shape.size()>(0);
         auto final = shape.last_index();
 
         final[axis] = start[axis] + count;
@@ -85,7 +85,7 @@ auto nd::select_final(std::size_t count, std::size_t axis)
     return [count, axis] (auto array)
     {
         auto shape = array.shape();
-        auto start = nd::make_uniform_index<shape.size()>(0);
+        auto start = nd::uniform_index<shape.size()>(0);
         auto final = shape.last_index();
 
         start[axis] = final[axis] - count;
@@ -118,7 +118,7 @@ auto nd::zip_adjacent2_on_axis(std::size_t axis)
 {
     return [axis] (auto array)
     {
-        return nd::zip_arrays(
+        return nd::zip(
         array | nd::select_axis(axis).from(0).to(1).from_the_end(),
         array | nd::select_axis(axis).from(1).to(0).from_the_end());
     };
@@ -128,7 +128,7 @@ auto nd::zip_adjacent3_on_axis(std::size_t axis)
 {
     return [axis] (auto array)
     {
-        return nd::zip_arrays(
+        return nd::zip(
         array | nd::select_axis(axis).from(0).to(2).from_the_end(),
         array | nd::select_axis(axis).from(1).to(1).from_the_end(),
         array | nd::select_axis(axis).from(2).to(0).from_the_end());
