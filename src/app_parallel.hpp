@@ -37,30 +37,18 @@
 //=============================================================================
 namespace mara
 {
-    template<std::size_t NumThreads>
-    inline auto evaluate_on();
-
-    template<std::size_t Rank>
-    inline auto propose_block_decomposition(std::size_t number_of_subdomains);
-
-    template<std::size_t Rank>
-    inline auto create_access_pattern_array(nd::shape_t<Rank> global_shape, nd::shape_t<Rank> blocks_shape);
-
     template<std::size_t NumPartitions, std::size_t Rank>
-    auto partition_shape(nd::shape_t<Rank> shape)
-    {
-        constexpr std::size_t distributed_axis = 0;
-        auto result = sq::sequence_t<nd::access_pattern_t<Rank>, NumPartitions>();
+    auto partition_shape(nd::shape_t<Rank> shape);
 
-        for (std::size_t n = 0; n < NumPartitions; ++n)
-        {
-            auto p = nd::make_access_pattern(shape);
-            p.start[distributed_axis] = (n + 0) * shape[distributed_axis] / NumPartitions;
-            p.final[distributed_axis] = (n + 1) * shape[distributed_axis] / NumPartitions;
-            result[n] = p;
-        }
-        return result;
-    }
+    template<std::size_t NumThreads>
+    auto evaluate_on();
+
+    template<std::size_t Rank>
+    nd::shape_t<Rank> propose_block_decomposition(std::size_t number_of_subdomains);
+
+    template<std::size_t Rank>
+    auto create_access_pattern_array(nd::shape_t<Rank> global_shape, nd::shape_t<Rank> blocks_shape);
+
 }
 
 
@@ -71,7 +59,37 @@ namespace mara::parallel::detail
 {
     inline std::pair<int, int> factor_once(int num);
     inline void prime_factors_impl(std::vector<int>& result, int num);
-    inline std::vector<int> prime_factors(int num);
+    inline nd::shared_array<std::size_t, 1> prime_factors(int num);
+}
+
+
+
+
+/**
+ * @brief      Return a sequence of access patterns that cover a shape by
+ *             partitioning it on its first axis.
+ *
+ * @param[in]  shape          The shape to partition
+ *
+ * @tparam     NumPartitions  The number of partitions
+ * @tparam     Rank           The shape rank
+ *
+ * @return     A sequence of access patterns
+ */
+template<std::size_t NumPartitions, std::size_t Rank>
+auto mara::partition_shape(nd::shape_t<Rank> shape)
+{
+    constexpr std::size_t distributed_axis = 0;
+    auto result = sq::sequence_t<nd::access_pattern_t<Rank>, NumPartitions>();
+
+    for (std::size_t n = 0; n < NumPartitions; ++n)
+    {
+        auto p = nd::make_access_pattern(shape);
+        p.start[distributed_axis] = (n + 0) * shape[distributed_axis] / NumPartitions;
+        p.final[distributed_axis] = (n + 1) * shape[distributed_axis] / NumPartitions;
+        result[n] = p;
+    }
+    return result;
 }
 
 
@@ -133,18 +151,17 @@ auto mara::evaluate_on()
  * @return     The shape of the decomposed blocks
  */
 template<std::size_t Rank>
-auto mara::propose_block_decomposition(std::size_t number_of_subdomains)
+nd::shape_t<Rank> mara::propose_block_decomposition(std::size_t number_of_subdomains)
 {
-    // auto mult = nd::transform([] (auto g) { return nd::accumulate(g, 1, std::multiplies<>()); });
-    auto result = nd::shape_t<Rank>();
-    // auto n = 0;
+    auto product = [] (auto g)
+    {
+        return std::accumulate(g.begin(), g.end(), std::size_t(1), std::multiplies<>());
+    };
 
-    throw;
-    // for (auto dim : nd::divvy(Rank)(parallel::detail::prime_factors(number_of_subdomains)) | mult)
-    // {
-    //     result[n++] = dim;
-    // }
-    return result;
+    return parallel::detail::prime_factors(number_of_subdomains)
+    | nd::divvy(Rank)
+    | nd::map(product)
+    | nd::to_sequence<Rank>();
 }
 
 
@@ -230,9 +247,16 @@ void mara::parallel::detail::prime_factors_impl(std::vector<int>& result, int nu
     }
 }
 
-std::vector<int> mara::parallel::detail::prime_factors(int num)
+nd::shared_array<std::size_t, 1> mara::parallel::detail::prime_factors(int num)
 {
-    std::vector<int> result;
-    prime_factors_impl(result, num);
-    return result;
+    std::vector<int> pfactors;
+    prime_factors_impl(pfactors, num);
+
+    auto result = nd::make_unique_array<std::size_t>(pfactors.size());
+
+    for (std::size_t i = 0; i < result.size(); ++i)
+    {
+        result(i) = pfactors.at(i);
+    }
+    return result | nd::to_shared();
 }

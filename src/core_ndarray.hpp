@@ -101,18 +101,18 @@ namespace nd
 
     // array operators
     //=========================================================================
-    inline auto to_shared();
-    inline auto to_unique();
-    inline auto bounds_check();
-    inline auto sum();
-    inline auto all();
-    inline auto any();
-    inline auto min();
-    inline auto max();
+    inline                       auto to_shared();
+    inline                       auto to_unique();
+    inline                       auto bounds_check();
+    inline                       auto sum();
+    inline                       auto all();
+    inline                       auto any();
+    inline                       auto min();
+    inline                       auto max();
     template<typename ArrayType> auto min(ArrayType&& array);
     template<typename ArrayType> auto max(ArrayType&& array);
     template<typename ArrayType> auto where(ArrayType array);
-
+    template<std::size_t Rank>   auto to_sequence();
 
     // convenience typedef's
     //=========================================================================
@@ -1632,6 +1632,26 @@ auto nd::where(ArrayType array)
 
 
 
+template<std::size_t Rank>
+auto nd::to_sequence()
+{
+    return [] (auto array)
+    {
+        if (array.size() != Rank)
+            throw std::invalid_argument("nd::to_sequence");
+
+        auto result = sq::sequence_t<typename decltype(array)::value_type, Rank>();
+
+        for (auto [i, x] : nd::enumerate(array))
+            result[i] = x;
+
+        return result;
+    };
+}
+
+
+
+
 //=============================================================================
 namespace nd
 {
@@ -2138,7 +2158,7 @@ auto nd::select(access_pattern_t<Rank> region_to_select)
 
 /**
  * @brief      Return a reducer operator, which can apply the given operator
- *             along a given axis
+ *             along a given axis.
  *
  * @param      reduction     The reduction
  *
