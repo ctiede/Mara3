@@ -113,7 +113,7 @@ auto mara::evaluate_on()
     {
         using value_type = typename decltype(array)::value_type;
         auto provider = nd::unique_provider_t<value_type, array.rank()>(array.shape());
-        auto evaluate_partial = [&] (auto accessor)
+        auto evaluate_partial = [array, &provider] (auto accessor)
         {
             return [accessor, array, &provider]
             {
