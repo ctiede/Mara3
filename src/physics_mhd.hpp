@@ -408,6 +408,7 @@ struct mara::mhd::primitive_t : public mara::derivable_sequence_t<double, 8, pri
     {
         const auto cs2 = sound_speed_squared(gamma_law_index);
         const auto one = cs2 + alfven_speed_squared();
+        //radical is wrong?
         const auto two = 0.5 * std::sqrt(one * one - 4 * cs2 * alfven_speed_squared_along(nhat));
 
         return 0.5 * one - two;

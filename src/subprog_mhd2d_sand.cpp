@@ -636,7 +636,7 @@ mhd_2d::solution_t mhd_2d::advance( const solution_t& solution,
 
 
     //=========================================================================
-    auto plm_theta      = solver.plm_theta;
+    auto plm_theta = solver.plm_theta;
 
     //=========================================================================
     auto v0  =  solver.vertices;
