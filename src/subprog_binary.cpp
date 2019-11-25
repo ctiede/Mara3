@@ -569,9 +569,14 @@ void binary::print_run_loop_message(const state_t& state, const solver_data_t& s
     .map([] (auto&& block) { return block.size(); })
     .sum() / perf.execution_time_ms;
 
-    mpi::printf_master("[%04d] orbits=%3.7lf kzps=%3.2lf\n",
+    auto kzps_per_proc = mpi::comm_world().reduce(0, kzps, mpi::operation::sum)
+                       / mpi::comm_world().size();
+                      // / num_threads ?
+
+    mpi::printf_master("[%04d] orbits=%3.7lf kzps/proc=%3.2lf\n",
         state.solution.iteration.as_integral(),
-        state.solution.time.value / (2 * M_PI), kzps);
+        state.solution.time.value / (2 * M_PI),
+        kzps_per_proc);
     std::fflush(stdout);
 }
 
