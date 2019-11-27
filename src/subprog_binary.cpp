@@ -604,6 +604,7 @@ public:
         if (mpi::is_master())
         {
             mara::pretty_print(std::cout, "config", run_config);
+            std::printf("MPI::Size : %d\n\n", mpi::comm_world().size());
         }
         
         state = tasks(state);
