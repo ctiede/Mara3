@@ -149,9 +149,9 @@ static auto extend(TreeType my_tree, TreeType full_tree, std::size_t axis, std::
 {
     return my_tree.indexes().map([=] (auto index)
     {
-        auto block = my_tree.at(index);
-        if (block.size() == 0)
-            return block | nd::to_shared();
+        // auto block = my_tree.at(index);
+        // if (block.size() == 0)
+        //     return block | nd::to_shared();
 
         auto C = full_tree.at(index);
         auto L = mara::get_cell_block(full_tree, index.prev_on(axis), mara::compose(nd::to_shared(), nd::select_final(guard_count, axis)));
@@ -484,11 +484,11 @@ static auto block_fluxes_u = [] (
 {
     return [=] (auto tree_index)
     {
-        if (solution.conserved_u.at(tree_index).size() == 0)
-        {
-            auto flux = nd::shared_array<mara::iso2d::flux_t, 2>() * mara::make_length(1.0) | nd::to_shared();
-            return std::make_tuple(flux, flux);
-        }
+        // if (solution.conserved_u.at(tree_index).size() == 0)
+        // {
+        //     auto flux = nd::shared_array<mara::iso2d::flux_t, 2>() * mara::make_length(1.0) | nd::to_shared();
+        //     return std::make_tuple(flux, flux);
+        // }
 
         auto u0 = solution.conserved_u.at(tree_index);
         auto xv = solver_data.vertices.at(tree_index);
@@ -536,11 +536,11 @@ static auto block_fluxes_q = [] (
 {
     return [=] (auto tree_index)
     {
-        if (solution.conserved_q.at(tree_index).size() == 0)
-        {
-            auto flux = nd::shared_array<mara::iso2d::flux_angmom_t, 2>() * mara::make_length(1.0) | nd::to_shared();
-            return std::make_tuple(flux, flux);
-        }
+        // if (solution.conserved_q.at(tree_index).size() == 0)
+        // {
+        //     auto flux = nd::shared_array<mara::iso2d::flux_angmom_t, 2>() * mara::make_length(1.0) | nd::to_shared();
+        //     return std::make_tuple(flux, flux);
+        // }
 
         auto q0 = solution.conserved_q.at(tree_index);
         auto xv = solver_data.vertices.at(tree_index);
@@ -591,10 +591,10 @@ static auto block_update_u = [] (
         auto dA = solver_data.cell_areas.at(tree_index);
         auto u0 = solution.conserved_u.at(tree_index);
 
-        if (u0.size() == 0)
-        {
-            return std::make_pair(u0.shared(), binary::source_term_total_t());
-        }
+        // if (u0.size() == 0)
+        // {
+        //     return std::make_pair(u0.shared(), binary::source_term_total_t());
+        // }
         auto lx = fhat_x.at(tree_index) | nd::difference_on_axis(0);
         auto ly = fhat_y.at(tree_index) | nd::difference_on_axis(1);
         auto s  = source_terms_u(solver_data, solution, binary, p0, tree_index, dt);
@@ -616,10 +616,10 @@ static auto block_update_q = [] (
         auto dA = solver_data.cell_areas.at(tree_index);
         auto q0 = solution.conserved_q.at(tree_index);
 
-        if (q0.size() == 0)
-        {
-            return std::make_pair(q0.shared(), binary::source_term_total_t());
-        }
+        // if (q0.size() == 0)
+        // {
+        //     return std::make_pair(q0.shared(), binary::source_term_total_t());
+        // }
         auto lx = fhat_x.at(tree_index) | nd::difference_on_axis(0);
         auto ly = fhat_y.at(tree_index) | nd::difference_on_axis(1);
         auto s  = source_terms_q(solver_data, solution, binary, p0, tree_index, dt);
@@ -723,8 +723,8 @@ auto correct_fluxes_x = [] (auto fx_full)
     {
         auto [index, flux_block] = index_block_pair;
 
-        if (flux_block.size() == 0)
-            return flux_block;
+        // if (flux_block.size() == 0)
+        //     return flux_block;
 
         return flux_block
         | correct_fluxes_xl(fx_full, index)
@@ -738,8 +738,8 @@ auto correct_fluxes_y = [] (auto fy_full)
     {
         auto [index, flux_block] = index_block_pair;
 
-        if (flux_block.size() == 0)
-            return flux_block;
+        // if (flux_block.size() == 0)
+        //     return flux_block;
 
         return flux_block
         | correct_fluxes_yl(fy_full, index)
@@ -847,7 +847,7 @@ auto block_is_owned_by(std::size_t rank, const binary::rank_tree_t& rank_tree)
  * @brief   Return a unique vector of all the indexes my process needs in order
  *          to update all of the blocks that I own
  */
-auto indexes_of_nonlocal_blocks(const binary::rank_tree_t& rank_tree)
+std::vector<mara::tree_index_t<2>> binary::indexes_of_nonlocal_blocks(const binary::rank_tree_t& rank_tree)
 {
     /**
      * @brief   Gives the index at target, it's parent, or all 4 of its children
@@ -896,12 +896,16 @@ auto indexes_of_nonlocal_blocks(const binary::rank_tree_t& rank_tree)
 
 
 template<typename ValueType>
-binary::quad_tree_t<ValueType> binary::mpi_fill_tree(quad_tree_t<ValueType> block_tree, const rank_tree_t& rank_tree)
+binary::quad_tree_t<ValueType> binary::mpi_fill_tree(quad_tree_t<ValueType> block_tree, const solver_data_t& solver_data)
 {
     using message_type_t = std::pair<mara::tree_index_t<2>, nd::shared_array<ValueType, 2>>;
 
     auto comm             = mpi::comm_world();
-    auto indexes_to_recv  = indexes_of_nonlocal_blocks(rank_tree);   
+    auto rank_tree        = solver_data.domain_decomposition;
+
+    // auto indexes_to_recv  = indexes_of_nonlocal_blocks(rank_tree);       
+    auto indexes_to_recv  = solver_data.indexes_to_recv;
+    // auto indexes_to_send  = solver_data.indexes_to_send;
     auto indexes_to_send  = comm.all_gather(indexes_to_recv);
     auto requests         = std::vector<mpi::Request>();
 
@@ -990,14 +994,14 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
     // Compute pre-requisite data
     //=========================================================================
     auto p0      = recover_primitive(solution, solver_data);
-    auto p0_full = binary::mpi_fill_tree(p0, solver_data.domain_decomposition);
+    auto p0_full = binary::mpi_fill_tree(p0, solver_data);
     auto p0_ex   = extend(p0, p0_full, 0, 1);
     auto p0_ey   = extend(p0, p0_full, 1, 1);
 
     auto gx      = p0_ex.pair_indexes().apply(estimate_gradient(0), tree_launch);
     auto gy      = p0_ey.pair_indexes().apply(estimate_gradient(1), tree_launch);
-    auto gx_full = binary::mpi_fill_tree(gx, solver_data.domain_decomposition);
-    auto gy_full = binary::mpi_fill_tree(gy, solver_data.domain_decomposition);
+    auto gx_full = binary::mpi_fill_tree(gx, solver_data);
+    auto gy_full = binary::mpi_fill_tree(gy, solver_data);
     auto gx_ex   = extend(gx, gx_full, 0, 1);
     auto gx_ey   = extend(gx, gx_full, 1, 1);
     auto gy_ex   = extend(gy, gy_full, 0, 1);
@@ -1011,8 +1015,8 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
 
     auto fhat_x  = fhat.map([] (auto t) { return std::get<0>(t); });
     auto fhat_y  = fhat.map([] (auto t) { return std::get<1>(t); });
-    auto fx_full = binary::mpi_fill_tree(fhat_x, solver_data.domain_decomposition);
-    auto fy_full = binary::mpi_fill_tree(fhat_y, solver_data.domain_decomposition);
+    auto fx_full = binary::mpi_fill_tree(fhat_x, solver_data);
+    auto fy_full = binary::mpi_fill_tree(fhat_y, solver_data);
     auto fhat_xc = fhat_x.pair_indexes().map(correct_fluxes_x(fx_full));
     auto fhat_yc = fhat_y.pair_indexes().map(correct_fluxes_y(fy_full));
 
@@ -1095,14 +1099,14 @@ binary::solution_t binary::advance_q(const solution_t& solution, const solver_da
     // Compute pre-requisite data
     //=========================================================================
     auto p0      = recover_primitive(solution, solver_data);
-    auto p0_full = binary::mpi_fill_tree(p0, solver_data.domain_decomposition);
+    auto p0_full = binary::mpi_fill_tree(p0, solver_data);
     auto p0_ex   = extend(p0, p0_full, 0, 1);
     auto p0_ey   = extend(p0, p0_full, 1, 1);
 
     auto gx      = p0_ex.pair_indexes().apply(estimate_gradient(0), tree_launch);
     auto gy      = p0_ey.pair_indexes().apply(estimate_gradient(1), tree_launch);
-    auto gx_full = binary::mpi_fill_tree(gx, solver_data.domain_decomposition);
-    auto gy_full = binary::mpi_fill_tree(gy, solver_data.domain_decomposition);
+    auto gx_full = binary::mpi_fill_tree(gx, solver_data);
+    auto gy_full = binary::mpi_fill_tree(gy, solver_data);
     auto gx_ex   = extend(gx, gx_full, 0, 1);
     auto gx_ey   = extend(gx, gx_full, 1, 1);
     auto gy_ex   = extend(gy, gy_full, 0, 1);
@@ -1115,8 +1119,8 @@ binary::solution_t binary::advance_q(const solution_t& solution, const solver_da
 
     auto fhat_x  = fhat.map([] (auto t) { return std::get<0>(t); });
     auto fhat_y  = fhat.map([] (auto t) { return std::get<1>(t); });
-    auto fx_full = binary::mpi_fill_tree(fhat_x, solver_data.domain_decomposition);
-    auto fy_full = binary::mpi_fill_tree(fhat_y, solver_data.domain_decomposition);
+    auto fx_full = binary::mpi_fill_tree(fhat_x, solver_data);
+    auto fy_full = binary::mpi_fill_tree(fhat_y, solver_data);
     auto fhat_xc = fhat_x.pair_indexes().map(correct_fluxes_x(fx_full));
     auto fhat_yc = fhat_y.pair_indexes().map(correct_fluxes_y(fy_full));
 
@@ -1181,7 +1185,6 @@ binary::solution_t binary::advance_q(const solution_t& solution, const solver_da
             solution.orbital_elements_grav        + delta_E_prime_grav
     });
     mpi::comm_world().barrier();
-    // auto validated_solution = validate_q(full_solution, solver_data);
 
     return validate_q(full_solution, solver_data);
 }

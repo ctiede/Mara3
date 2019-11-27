@@ -89,8 +89,11 @@ binary::solver_data_t binary::create_solver_data(const mara::config_t& run_confi
         });
     });
 
+    // MPI variables
     auto my_timestep = std::min(min_dx, min_dy) / max_velocity * run_config.get_double("cfl_number");
     auto recommended_time_step = mpi::comm_world().all_reduce(my_timestep, mpi::operation::min);
+    auto domain_decomposition  = create_rank_tree(run_config);
+    auto indexes_to_recv       = binary::indexes_of_nonlocal_blocks(domain_decomposition);
 
     //=========================================================================
     auto result = solver_data_t();
@@ -116,8 +119,11 @@ binary::solver_data_t binary::create_solver_data(const mara::config_t& run_confi
     result.initial_conserved_u   = create_solution(run_config).conserved_u;
     result.initial_conserved_q   = create_solution(run_config).conserved_q;
 
+    // MPI variables
     result.recommended_time_step = recommended_time_step;   
-    result.domain_decomposition  = create_rank_tree(run_config);
+    result.domain_decomposition  = domain_decomposition;
+    result.indexes_to_recv       = indexes_to_recv;
+    // result.indexes_to_send       = mpi::comm_world().all_gather(indexes_to_recv);
 
     if      (run_config.get_string("riemann") == "hlle") result.riemann_solver = riemann_solver_t::hlle;
     else throw std::invalid_argument("invalid riemann solver '" + run_config.get_string("riemann") + "', must be hlle");

@@ -102,6 +102,8 @@ namespace binary
         quad_tree_t<mara::unit_rate<double>>                  buffer_rate_field;
 
         rank_tree_t                                           domain_decomposition;
+        std::vector<mara::tree_index_t<2>>                    indexes_to_recv;
+        // std::vector<mara::tree_index_t<2>>                    indexes_to_send;
     };
 
 
@@ -204,8 +206,10 @@ namespace binary
     
 
     template<typename ValueType>
-    quad_tree_t<ValueType> mpi_fill_tree(quad_tree_t<ValueType> block_tree, const rank_tree_t& rank_tree);
+    quad_tree_t<ValueType> mpi_fill_tree(quad_tree_t<ValueType> block_tree, const solver_data_t& solver_data);
+    // quad_tree_t<ValueType> mpi_fill_tree(quad_tree_t<ValueType> block_tree, const rank_tree_t& rank_tree);
     solution_t             mpi_reduce_sources(const solution_t& solution);
+    std::vector<mara::tree_index_t<2>> indexes_of_nonlocal_blocks(const rank_tree_t& rank_tree);
 
     // io
     void write_singles  (h5::Group& group, std::string name, const binary::state_t& state);
