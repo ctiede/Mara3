@@ -24,7 +24,7 @@ Date: {date}
 def mara_command(subprog, exe='mara', **kwargs):
     return './{} {} {}'.format(exe, subprog,
         ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
-    # return './{} {} {}'.format('mpiexe -np 2 mara', subprog,
+    # return './{} {} {}'.format('mpiexe ./mara', subprog,
     # ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
 
 
