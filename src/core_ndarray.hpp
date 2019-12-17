@@ -33,7 +33,7 @@
 #include <iterator>          // std::distance
 #include <memory>            // std::shared_ptr
 #include <numeric>           // std::accumulate
-#include <string>            // std::to_string
+#include <cstring>            // std::to_string
 #include <utility>           // std::index_sequence
 
 
