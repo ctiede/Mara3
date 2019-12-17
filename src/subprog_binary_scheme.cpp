@@ -1065,7 +1065,7 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
 
     // The full updated solution state
     //=========================================================================
-    return binary::mpi_reduce_sources(solution_t{
+    auto full_solution = binary::mpi_reduce_sources(solution_t{
         solution.time + dt,
         solution.iteration + 1,
         u1,
@@ -1079,6 +1079,9 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
         solution.orbital_elements_acc         + delta_E_prime_acc,
         solution.orbital_elements_grav        + delta_E_prime_grav,
     });
+    mpi::comm_world().barrier();
+
+    return validate_u(full_solution, solver_data);
 }
 
 binary::solution_t binary::advance_q(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
