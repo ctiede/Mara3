@@ -751,7 +751,7 @@ auto correct_fluxes_y = [] (auto fy_full)
 
 
 //=============================================================================
-auto validate = [] (auto solution, auto solver_data)
+auto validate_q = [] (auto solution, auto solver_data)
 {
     bool any_failures = false;
 
@@ -781,6 +781,39 @@ auto validate = [] (auto solution, auto solver_data)
     }
     return solution;
 };
+
+auto validate_u = [] (auto solution, auto solver_data)
+{
+    bool any_failures = false;
+
+    solution.conserved_u.indexes().sink([&any_failures, solution, solver_data] (auto index)
+    {
+        auto XQ = nd::zip(solver_data.cell_centers.at(index), solution.conserved_u.at(index));
+
+        for (auto xq : XQ)
+        {
+            const auto& x = std::get<0>(xq);
+            const auto& q = std::get<1>(xq);
+
+            if (mara::get<0>(q) < 0.0)
+            {                
+                std::printf("negative density %3.2e (at position [%+3.2lf %+3.2lf])\n", mara::get<0>(q).value, x[0].value, x[1].value);
+                any_failures = true;
+            }
+        }
+    });
+
+    if (any_failures)
+    {
+        // std::printf("\t rank (%d) throwing error!\n", mpi::comm_world().rank());
+        // std::printf("\t throwing error!\n");
+        auto error_string = "negative density in updated state " + std::to_string(mpi::comm_world().rank());
+        throw std::runtime_error(error_string);
+    }
+    return solution;
+};
+
+
 
 
 
@@ -1080,7 +1113,7 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
     });
     mpi::comm_world().barrier();
 
-    return validate(full_solution, solver_data);
+    return validate_u(full_solution, solver_data);
 }
 
 binary::solution_t binary::advance_q(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
@@ -1188,7 +1221,7 @@ binary::solution_t binary::advance_q(const solution_t& solution, const solver_da
     });
     mpi::comm_world().barrier();
 
-    return validate(full_solution, solver_data);
+    return validate_q(full_solution, solver_data);
 }
 
 binary::solution_t binary::advance(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
