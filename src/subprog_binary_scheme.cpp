@@ -751,7 +751,7 @@ auto correct_fluxes_y = [] (auto fy_full)
 
 
 //=============================================================================
-auto validate_q = [] (auto solution, auto solver_data)
+auto validate = [] (auto solution, auto solver_data)
 {
     bool any_failures = false;
 
@@ -781,7 +781,6 @@ auto validate_q = [] (auto solution, auto solver_data)
     }
     return solution;
 };
-
 
 
 
@@ -1081,7 +1080,7 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
     });
     mpi::comm_world().barrier();
 
-    return validate_u(full_solution, solver_data);
+    return validate(full_solution, solver_data);
 }
 
 binary::solution_t binary::advance_q(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
@@ -1189,7 +1188,7 @@ binary::solution_t binary::advance_q(const solution_t& solution, const solver_da
     });
     mpi::comm_world().barrier();
 
-    return validate_q(full_solution, solver_data);
+    return validate(full_solution, solver_data);
 }
 
 binary::solution_t binary::advance(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
