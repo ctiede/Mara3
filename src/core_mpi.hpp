@@ -26,7 +26,7 @@
 
 
 
-#include <string>
+#include <cstring>
 #include <numeric>
 #include <vector>
 #include <fstream>
@@ -103,6 +103,7 @@ namespace mpi
             case operation::maxloc: return MPI_MAXLOC;
             case operation::minloc: return MPI_MINLOC;
         }
+        return MPI_MAX;
     }
 }
 

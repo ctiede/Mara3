@@ -21,11 +21,14 @@ Date: {date}
 
 
 
-def mara_command(subprog, exe='mara', **kwargs):
-    return './{} {} {}'.format(exe, subprog,
-        ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
-    # return './{} {} {}'.format('mpiexe ./mara', subprog,
+def mara_command(subprog, exe='mara', nodes=1, ppn=1, **kwargs):
+    #return './{} {} {}'.format(exe, subprog,
+    #    ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
+    #return '{} {} {}'.format('mpiexec ./mara', subprog,
     # ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
+     return 'mpiexec -npernode 1 --bind-to none ./mara {} {}'.format(subprog,
+    ' '.join(['{}={}'.format(k, v) for k, v in kwargs.items()]))
+
 
 
 
@@ -36,7 +39,7 @@ def run_script(template, subprog, exe='mara', runid='test', nodes=1, ppn=1, hour
         hours=hours,
         job_name=runid,
         output=os.path.join(kwargs.get('outdir', './'), runid + '.out'),
-        command=mara_command(subprog, exe=exe, **kwargs))
+        command=mara_command(subprog, exe=exe, nodes=nodes, ppn=ppn, **kwargs))
 
 
 
