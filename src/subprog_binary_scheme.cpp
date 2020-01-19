@@ -782,9 +782,11 @@ auto validate_q = [] (auto solution, auto solver_data)
     return solution;
 };
 
-auto validate_u = [] (auto solution, auto solver_data)
+
+auto validate_u = [] (auto solution, auto solver_data, auto safe_mode)
 {
     bool any_failures = false;
+
 
     solution.conserved_u.indexes().sink([&any_failures, solution, solver_data] (auto index)
     {
@@ -803,12 +805,80 @@ auto validate_u = [] (auto solution, auto solver_data)
         }
     });
 
+
     if (any_failures)
     {
-        // std::printf("\t rank (%d) throwing error!\n", mpi::comm_world().rank());
-        // std::printf("\t throwing error!\n");
-        auto error_string = "negative density in updated state " + std::to_string(mpi::comm_world().rank());
-        throw std::runtime_error(error_string);
+        if(!safe_mode)
+        {
+            auto error_string = "negative density in updated state " + std::to_string(mpi::comm_world().rank());
+            throw std::runtime_error(error_string);
+        }
+
+        auto repaired_conserved = solution.conserved_u.indexes().map([solution, solver_data] (auto index)
+        {
+            auto Q = solution.conserved_u.at(index);
+
+            // Get indexes that need to be repaired
+            auto indexes_to_repair = std::vector<nd::index_t<2>>();
+            for (auto i : Q.indexes())
+            {
+                auto q = Q(i);
+                if(mara::get<0>(q) < 0.0)
+                {
+                    indexes_to_repair.push_back(i);
+                }
+            }
+
+            auto repaired = Q;
+            for (auto idx : indexes_to_repair)
+            {
+                //make sure all neighbor indeces exist and average their densities
+                int  count = 0;
+                auto new_density = 0.0;
+
+                if (idx.next_on(0)[0] < Q.shape(0))
+                {
+                    auto rho = mara::get<0>(Q(idx.next_on(0)));
+                    if (rho > 0.0)
+                    {
+                        new_density += rho.value;
+                        count++;
+                    }
+                }
+                if (idx.next_on(1)[1] < Q.shape(1))
+                {
+                    auto rho = mara::get<0>(Q(idx.next_on(1)));
+                    if (rho > 0.0)
+                    {
+                        new_density += rho.value;
+                        count++;
+                    }
+                }
+                if (idx.prev_on(0)[0] > 0)
+                {
+                    auto rho = mara::get<0>(Q(idx.prev_on(0)));
+                    if (rho > 0.0)
+                    {
+                        new_density += rho.value;
+                        count++;
+                    }
+                }
+                if (idx.prev_on(1)[1] > 0)
+                {
+                    auto rho = mara::get<0>(Q(idx.prev_on(1)));
+                    if (rho > 0.0)
+                    {
+                        new_density += rho.value;
+                        count++;
+                    }
+                }
+                if (count)
+                {
+                    // make new conserved with new density and insert into `repaired`
+                }
+            }
+            return repaired;
+        });
     }
     return solution;
 };
@@ -1113,7 +1183,7 @@ binary::solution_t binary::advance_u(const solution_t& solution, const solver_da
     });
     mpi::comm_world().barrier();
 
-    return validate_u(full_solution, solver_data);
+    return validate_u(full_solution, solver_data, safe_mode);
 }
 
 binary::solution_t binary::advance_q(const solution_t& solution, const solver_data_t& solver_data, mara::unit_time<double> dt, bool safe_mode)
